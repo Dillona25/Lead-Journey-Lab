@@ -1,3 +1,7 @@
+"use client";
+
+import { pushDataLayerEvent } from "@/lib/analytics";
+
 const FACEBOOK_FUNNEL_URL = "/black-friday?utm_source=facebook&utm_medium=paid_social&utm_campaign=black-friday&utm_content=video";
 const INSTAGRAM_FUNNEL_URL = "/black-friday?utm_source=instagram&utm_medium=paid_social&utm_campaign=black-friday&utm_content=video";
 
@@ -5,9 +9,10 @@ type EntryButtonProps = {
   label: string;
   url: string;
   className: string;
+  source: string;
 };
 
-function EntryButton({ label, url, className }: EntryButtonProps) {
+function EntryButton({ label, url, className, source }: EntryButtonProps) {
   if (!url) {
     return (
       <button className={`btn btn-lg ${className}`} type="button" disabled>
@@ -17,7 +22,11 @@ function EntryButton({ label, url, className }: EntryButtonProps) {
   }
 
   return (
-    <a className={`btn btn-lg ${className}`} href={url}>
+    <a
+      className={`btn btn-lg ${className}`}
+      href={url}
+      onClick={() => pushDataLayerEvent({ event: "ad_simulator_click", ad_source: source })}
+    >
       {label}
     </a>
   );
@@ -31,8 +40,8 @@ export default function AdSimulatorPage() {
         <p className="text-secondary mb-4">Choose an ad source to enter the funnel.</p>
 
         <div className="d-grid gap-3">
-          <EntryButton label="Enter from Facebook" url={FACEBOOK_FUNNEL_URL} className="btn-primary" />
-          <EntryButton label="Enter from Instagram" url={INSTAGRAM_FUNNEL_URL} className="btn-instagram" />
+          <EntryButton label="Enter from Facebook" url={FACEBOOK_FUNNEL_URL} className="btn-primary" source="facebook" />
+          <EntryButton label="Enter from Instagram" url={INSTAGRAM_FUNNEL_URL} className="btn-instagram" source="instagram" />
         </div>
       </section>
     </main>

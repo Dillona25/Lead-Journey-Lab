@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
+import AnalyticsShell from "./analytics-shell";
+import GoogleTagManager from "./google-tag-manager";
 
 export const metadata: Metadata = {
   title: "Black Friday Campaign Simulator",
@@ -10,7 +13,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Suspense fallback={null}>
+          <AnalyticsShell />
+        </Suspense>
+        {children}
+        <GoogleTagManager />
+      </body>
     </html>
   );
 }

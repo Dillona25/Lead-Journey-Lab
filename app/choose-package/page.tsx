@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { pushDataLayerEvent } from "@/lib/analytics";
 
 const packages = [
   {
@@ -33,13 +34,42 @@ const packages = [
 
 export default function ChoosePackagePage() {
 const [address, setAddress] = useState('');
+const hasViewedPackageList = useRef(false);
 
 useEffect(() => {
     setAddress(localStorage.getItem("USER_ADDRESS") || '');
+    if (hasViewedPackageList.current) {
+      return;
+    }
+
+    hasViewedPackageList.current = true;
+    pushDataLayerEvent({
+      event: "view_item_list",
+      item_list_id: "black_friday_fiber_packages",
+      item_list_name: "Black Friday fiber packages",
+      items: packages.map((internetPackage) => ({
+        item_id: internetPackage.id,
+        item_name: internetPackage.name,
+        price: Number(`${internetPackage.price}.${internetPackage.cents}`),
+      })),
+    });
 }, [])
 
 const handlePackageSelect = (internetPackage: (typeof packages)[number]) => {
     sessionStorage.setItem("SELECTED_PACKAGE", JSON.stringify(internetPackage));
+    pushDataLayerEvent({
+      event: "select_item",
+      item_list_id: "black_friday_fiber_packages",
+      item_list_name: "Black Friday fiber packages",
+      item_id: internetPackage.id,
+      item_name: internetPackage.name,
+      price: Number(`${internetPackage.price}.${internetPackage.cents}`),
+      items: [{
+        item_id: internetPackage.id,
+        item_name: internetPackage.name,
+        price: Number(`${internetPackage.price}.${internetPackage.cents}`),
+      }],
+    });
 }
 
   return (

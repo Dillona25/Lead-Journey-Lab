@@ -1,12 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { createEventId, pushDataLayerEvent } from "@/lib/analytics";
 
-export default function BlackFridayPage() {
+const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
+
+function BlackFridayContent() {
   const [address, setAddress] = useState("");
-  const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+  const [isChecking, setIsChecking] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
   const searchParams = useSearchParams();
 
     useEffect(() => {
@@ -36,25 +40,44 @@ useEffect(() => {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError("");
+    setIsChecking(true);
+    const eventId = createEventId("availability");
 
-    // Store address in local storage
-    localStorage.setItem("USER_ADDRESS", address);
-
-    // Calling our API endpoint to get address, CORS error blocked web requests
-    const response = await fetch("/api/address-check", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ address }),
+    pushDataLayerEvent({
+      event: "availability_check",
+      event_id: eventId,
     });
 
-    if (!response.ok) {
-      throw new Error("Address lookup failed");
+    try {
+      localStorage.setItem("USER_ADDRESS", address);
+
+      const response = await fetch("/api/address-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Address lookup failed. Please try again.");
+      }
+
+      pushDataLayerEvent({
+        event: "availability_result",
+        event_id: eventId,
+        availability_status: "available",
+      });
+      router.push("/choose-package");
+    } catch (lookupError) {
+      setError(lookupError instanceof Error ? lookupError.message : "Address lookup failed.");
+      pushDataLayerEvent({
+        event: "availability_result",
+        event_id: eventId,
+        availability_status: "error",
+      });
+    } finally {
+      setIsChecking(false);
     }
-
-    const data = await response.json();
-    console.log(data);
-
-
   };
 
 
@@ -112,18 +135,27 @@ useEffect(() => {
                     type="text"
                     onChange={(e) => setAddress(e.target.value)}
                     value={address}
+                    disabled={isChecking}
+                    required
                   />
-                  <Link href="/choose-package">
-                  <button className="btn btn-dark btn-lg flex-shrink-0" type="submit">
-                    Check availability
+                  <button className="btn btn-dark btn-lg flex-shrink-0" type="submit" disabled={isChecking}>
+                    {isChecking ? "Checking…" : "Check availability"}
                   </button>
-                  </Link>
                 </div>
+                {error && <div className="alert alert-danger mt-3 mb-0" role="alert">{error}</div>}
               </form>
             </div>
           </div>
         </div>
       </section>
     </main>
+  );
+}
+
+export default function BlackFridayPage() {
+  return (
+    <Suspense fallback={<main className="black-friday-page min-vh-100" />}>
+      <BlackFridayContent />
+    </Suspense>
   );
 }
